@@ -1,32 +1,19 @@
-# Convex Database Setup Notes
+# Convex Database - Integration Notes
 
-This document explains how Convex is integrated into the RadiantSalon application.
+This document explains how Convex is integrated with your RadiantSalon project.
 
-## Overview
+## Your Convex Project Info
 
-Convex is used as the real-time database and backend. It provides automatic reactivity, serverless functions, and TypeScript-first development.
+| Field | Value |
+|-------|-------|
+| **Team** | sonar-shubham |
+| **Project** | radiant-backend |
+| **Team ID** | 373232 |
+| **Dashboard** | https://dashboard.convex.dev |
 
 ## Files Created/Modified
 
-### 1. `convex/schema.ts` - Database Schema
-
-Defines 9 tables for the application:
-
-| Table | Purpose |
-|-------|---------|
-| `users` | User profiles linked to Clerk |
-| `salons` | Salon profiles with WhatsApp config |
-| `staff` | Staff members with schedules |
-| `services` | Service catalog with pricing |
-| `appointments` | Booking records |
-| `clients` | Customer database |
-| `transactions` | Payment records |
-| `notifications` | WhatsApp message logs |
-| `inventory` | Stock management |
-
-### 2. `app/ConvexClientProvider.tsx` (Alternative to current setup)
-
-For standalone Convex (without Clerk integration), create this file:
+### 1. `src/app/ConvexClientProvider.tsx`
 
 ```typescript
 "use client";
@@ -41,113 +28,179 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
 }
 ```
 
-### 3. Current Integration with Clerk
+**What it does:**
+- Creates a Convex client using the deployment URL
+- Provides reactive data context to all components
+- Must be a client component ("use client")
 
-We're using `ConvexProviderWithClerk` in `src/providers/index.tsx`:
+### 2. `src/app/layout.tsx`
+
+The layout wraps children with ConvexClientProvider:
 
 ```typescript
-import { ConvexProviderWithClerk } from "convex/react-clerk";
-// This allows Convex to use Clerk's authentication
+<ClerkProvider>
+  <html lang="en">
+    <body>
+      <ConvexClientProvider>{children}</ConvexClientProvider>
+    </body>
+  </html>
+</ClerkProvider>
 ```
 
-## Environment Variables
+### 3. `convex/schema.ts`
 
-Add to `.env.local`:
+Defines your database tables:
+- `users` - User profiles
+- `salons` - Salon information
+- `staff` - Staff members
+- `services` - Service catalog
+- `appointments` - Bookings
+- `clients` - Customer database
+- `transactions` - Payment records
+- `notifications` - Message logs
+- `inventory` - Stock management
 
-```env
-NEXT_PUBLIC_CONVEX_URL=https://YOUR_PROJECT.convex.cloud
-```
+## Setup Commands
 
-## Commands
+### Connect to Your Existing Project
 
-### Initialize Convex (first time)
+Since you already have a Convex project, run:
 
-```bash
-npx convex dev
-```
-
-This will:
-1. Prompt you to login (via GitHub)
-2. Create a new project
-3. Generate the `convex/_generated/` folder
-4. Deploy your schema
-
-### Re-initialize with existing project
-
-If you lose your `.env.local` file:
-
-```bash
-npx convex dev --configure=existing --team YOUR_TEAM --project YOUR_PROJECT
-```
-
-For this project:
 ```bash
 npx convex dev --configure=existing --team sonar-shubham --project radiant-backend
 ```
 
-### Deploy only
+This will:
+1. Connect to your existing project
+2. Create/update `.env.local` with `NEXT_PUBLIC_CONVEX_URL`
+3. Sync your schema to the cloud
+4. Start watching for changes
 
-```bash
-npx convex deploy
+### Environment Variable
+
+After running the command above, your `.env.local` will have:
+
+```env
+NEXT_PUBLIC_CONVEX_URL=https://YOUR_PROJECT_ID.convex.cloud
 ```
-
-## Convex Dashboard
-
-Access at: https://dashboard.convex.dev
-
-Features:
-- View and edit data directly
-- Monitor function logs
-- Manage deployments
-- Configure settings
 
 ## Using Convex in Components
 
-### Query Data
+### Query Data (Real-time)
 
-```typescript
+```tsx
 "use client";
 import { useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 
-export function MyComponent() {
+export function AppointmentsList() {
   const appointments = useQuery(api.appointments.list);
-  return <div>{appointments?.length} appointments</div>;
+  
+  if (!appointments) return <div>Loading...</div>;
+  
+  return (
+    <ul>
+      {appointments.map(apt => (
+        <li key={apt._id}>{apt.clientName}</li>
+      ))}
+    </ul>
+  );
 }
 ```
 
 ### Mutate Data
 
-```typescript
+```tsx
+"use client";
 import { useMutation } from "convex/react";
-import { api } from "../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 
-export function CreateButton() {
+export function CreateAppointmentButton() {
   const create = useMutation(api.appointments.create);
-  return <button onClick={() => create({ ... })}>Create</button>;
+  
+  const handleClick = async () => {
+    await create({
+      clientName: "John Doe",
+      service: "Haircut",
+      date: new Date().toISOString(),
+    });
+  };
+  
+  return <button onClick={handleClick}>Create Appointment</button>;
 }
 ```
 
-## Clerk + Convex JWT Template
+### Creating Query Functions
 
-For authentication to work between Clerk and Convex:
+Create a file like `convex/appointments.ts`:
 
-1. Go to Clerk Dashboard → JWT Templates
-2. Create a new template named "convex"
-3. Set the issuer to your Clerk frontend API URL
-4. Copy the JWT template to Convex Dashboard → Settings → Authentication
+```typescript
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
 
-## Your Convex Project Info
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("appointments").collect();
+  },
+});
 
-- **Team**: sonar-shubham
-- **Project**: radiant-backend
-- **Preview Deploy Key**: `preview:sonar-shubham:radiant-backend|eyJ2MiI6Ijg2NjU3MDMzZmI1OTRlYmFhOWZlY2NhOTU5MWNhMmVkIn0=`
-- **Team ID**: 373232
-- **Access Token**: (stored in .env.local)
+export const create = mutation({
+  args: {
+    clientName: v.string(),
+    service: v.string(),
+    date: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("appointments", {
+      ...args,
+      status: "pending",
+      createdAt: Date.now(),
+    });
+  },
+});
+```
+
+## Preview Deployments (for Vercel)
+
+Your preview deploy key:
+```
+preview:sonar-shubham:radiant-backend|eyJ2MiI6Ijg2NjU3MDMzZmI1OTRlYmFhOWZlY2NhOTU5MWNhMmVkIn0=
+```
+
+Add this to Vercel as `CONVEX_DEPLOY_KEY` environment variable.
+
+## Verification Checklist
+
+- [ ] Run `npx convex dev` to connect to your project
+- [ ] Verify `.env.local` has `NEXT_PUBLIC_CONVEX_URL`
+- [ ] Check Convex Dashboard for your tables
+- [ ] Test a query in a component
+
+## Troubleshooting
+
+### "NEXT_PUBLIC_CONVEX_URL is not defined"
+
+Run the connect command:
+```bash
+npx convex dev --configure=existing --team sonar-shubham --project radiant-backend
+```
+
+### Schema not syncing
+
+1. Check for TypeScript errors in `convex/schema.ts`
+2. Run `npx convex dev` to see detailed errors
+3. Fix any issues and the schema will auto-sync
+
+### Data not updating in real-time
+
+- Ensure component is wrapped with `ConvexClientProvider`
+- Check that the query hook is at the top level of a client component
+- Verify the component has "use client" directive
 
 ## Next Steps
 
-1. Run `npx convex dev` to start the local backend
-2. The schema will auto-deploy
-3. Create query/mutation functions in `convex/` folder
-4. Use Convex hooks in your components
+1. Run: `npx convex dev --configure=existing --team sonar-shubham --project radiant-backend`
+2. Create query/mutation functions in `convex/` folder
+3. Use `useQuery` and `useMutation` in your components
+4. Add authentication with Clerk+Convex JWT template

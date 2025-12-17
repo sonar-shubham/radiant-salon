@@ -1,4 +1,4 @@
-// proxy.ts - Clerk Middleware
+// middleware.ts - Clerk Middleware
 // This file handles authentication for all routes using the new Clerk clerkMiddleware() function
 // Learn more: https://clerk.com/docs/quickstarts/nextjs
 
