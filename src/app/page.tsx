@@ -43,7 +43,7 @@ export default function LandingPage() {
                   Sign In
                 </Button>
               </Link>
-              <Link href="/sign-up">
+              <Link href="/dashboard">
                 <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-lg shadow-violet-500/25">
                   Get Started Free
                 </Button>
@@ -77,7 +77,7 @@ export default function LandingPage() {
             Boost your salon&apos;s efficiency with real-time analytics and automated WhatsApp notifications.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up">
+            <Link href="/dashboard">
               <Button size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-2xl shadow-violet-500/30 text-lg px-8 h-14">
                 Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -386,7 +386,7 @@ export default function LandingPage() {
               <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
                 Join thousands of salon owners who have streamlined their operations with RadiantSalon.
               </p>
-              <Link href="/sign-up">
+              <Link href="/dashboard">
                 <Button size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-2xl shadow-violet-500/30 text-lg px-10 h-14">
                   Start Your Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
